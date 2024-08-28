@@ -7,6 +7,9 @@
 #include <open62541/client_highlevel.h>
 #include <open62541/plugin/log_stdout.h>
 int ua_client_start(neu_plugin_t *plugin){
+    if(plugin->client!=NULL){
+        return -2;
+    }
     plugin->client = UA_Client_new();
     UA_ClientConfig_setDefault(UA_Client_getConfig(plugin->client));
     UA_StatusCode retval = UA_Client_connect(plugin->client, plugin->host);
@@ -15,6 +18,7 @@ int ua_client_start(neu_plugin_t *plugin){
         printf("错误：%s",UA_StatusCode_name(retval));
         UA_LOG_ERROR(UA_Log_Stdout,UA_LOGCATEGORY_USERLAND, "%s",UA_StatusCode_name(retval));
         UA_Client_delete(plugin->client);
+        plugin->client=NULL;
         return (int)retval;
     }
     plugin->common.link_state = NEU_NODE_LINK_STATE_CONNECTED;

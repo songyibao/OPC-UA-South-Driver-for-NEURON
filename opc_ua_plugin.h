@@ -16,6 +16,7 @@ struct neu_plugin {
 
     UA_Client *client;
     bool connected;
+    bool started;
 
     char        *host;
     uint16_t    timeout;

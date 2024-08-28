@@ -110,7 +110,9 @@ static int driver_start(neu_plugin_t *plugin)
     plog_debug(plugin,
                "\n==============================driver_start"
                "===========================\n");
+
     ua_client_start(plugin);
+    plugin->started = true;
     return 0;
 }
 
@@ -120,6 +122,7 @@ static int driver_stop(neu_plugin_t *plugin)
                "\n==============================driver_stop"
                "===========================\n");
     plog_notice(plugin, "%s stop success", plugin->common.name);
+    plugin->started = false;
     ua_client_stop(plugin);
     return 0;
 }
@@ -194,9 +197,8 @@ static int driver_group_timer(neu_plugin_t *plugin, neu_plugin_group_t *group)
     plog_debug(plugin,
                "\n==============================driver_group_timer"
                "===========================\n");
-    if(plugin->connected == false){
-        plog_debug(plugin,"插件未连接，跳过读取");
-        return 0;
+    if(plugin->started == false){
+        return NEU_ERR_NODE_NOT_RUNNING;
     }
     utarray_foreach(group->tags, neu_datatag_t *, tag)
     {

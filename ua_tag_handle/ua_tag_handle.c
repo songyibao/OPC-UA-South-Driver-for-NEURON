@@ -5,7 +5,7 @@
 #include "ua_tag_handle.h"
 #include "../ua_tag_hash/ua_tag_hash.h"
 #include <open62541/client_highlevel.h>
-
+#include "../client/ua_client.h"
 void parse_numbers(char *str, int *ns, int *i) {
     // 使用 strtok 来分割字符串
     char *copy = strdup(str); // 创建字符串的副本，因为 strtok 会修改字符串
@@ -43,17 +43,27 @@ UA_NodeId get_node_id_from_str(char *str) {
 
 UA_StatusCode create_and_add_plc_tag(neu_plugin_t *plugin, neu_datatag_t *tag) {
 
+    if(plugin->client==NULL){
+        if(ua_client_start(plugin)!=0){
+            plog_error(plugin,"创建tag时client不存在且尝试创建失败");
+            return -1;
+        }
+    }
     int ns, i;
     parse_numbers(tag->address, &ns, &i);
     plog_debug(plugin,"解析字符串地址成功------------------------------>:%d,%d",ns,i);
     UA_NodeId node_id = UA_NODEID_NUMERIC(ns, i);
 //    plugin_add_tag(plugin, tag->address, node_id);
     UA_Variant value;
+    UA_Variant_init(&value);
     UA_StatusCode res = UA_Client_readValueAttribute(plugin->client, node_id, &value);
+
     /* everything OK? */
-    if (res != UA_STATUSCODE_BADNODEIDUNKNOWN) {
+    if (res == UA_STATUSCODE_GOOD) {
         plog_debug(plugin,"tag存在，添加该tag");
         plugin_add_tag(plugin, tag->address, node_id);
+    }else{
+        plog_debug(plugin,"创建tag时校验出错,错误码:%s",UA_StatusCode_name(res));
     }
     return res;
 }
@@ -74,10 +84,7 @@ int read_tag(neu_plugin_t *plugin, neu_plugin_group_t *group, neu_datatag_t *tag
         if (res != UA_STATUSCODE_GOOD) {
             // 读取失败, 错误处理
             NEU_PLUGIN_UPDATE_METRIC(plugin, NEU_METRIC_LAST_RTT_MS, 9999, NULL);
-            plog_error(plugin,
-                       "ERROR: Unable to read the data! Got error code %d: %s, deleting tag %s from "
-                       "hashtable\n",
-                       res, UA_StatusCode_name(res), tag->address);
+            plog_error(plugin,"ERROR:%s, deleting tag %s from hashtable\n",UA_StatusCode_name(res), tag->address);
             dist_value->type = NEU_TYPE_ERROR;
             dist_value->value.i32 = NEU_ERR_PLUGIN_TAG_NOT_READY;
             plugin_del_tag(plugin, tag->address);
@@ -95,10 +102,10 @@ int read_tag(neu_plugin_t *plugin, neu_plugin_group_t *group, neu_datatag_t *tag
         //            dvalue->type      = NEU_TYPE_ERROR;
 
         if(tag->type>=1 && tag->type<=10 && UA_Variant_hasScalarType(&value, &UA_TYPES[tag->type])==false){
-            dist_value->value.i32 = NEU_ERR_TAG_TYPE_NOT_SUPPORT;
+            dist_value->value.i32 = NEU_ERR_PLUGIN_READ_FAILURE;
             goto exit;
         }else if(tag->type == NEU_TYPE_BOOL && UA_Variant_hasScalarType(&value, &UA_TYPES[UA_TYPES_BOOLEAN])==false){
-            dist_value->value.i32 = NEU_ERR_TAG_TYPE_NOT_SUPPORT;
+            dist_value->value.i32 = NEU_ERR_PLUGIN_READ_FAILURE;
             goto exit;
         }
         switch (tag->type) {
@@ -170,11 +177,6 @@ exit:
 }
 
 void handle_tag(neu_plugin_t *plugin, neu_datatag_t *tag, neu_plugin_group_t *group) {
-    //    plog_debug(plugin,
-    //               "tag: %s, address: %s, attribute: %d, type: %d, "
-    //               "precision: %d, decimal: %f, description: %s",
-    //               tag->name, tag->address, tag->attribute, tag->type, tag->precision, tag->decimal,
-    //               tag->description);
     neu_dvalue_t dvalue = {0};
     dvalue.type = tag->type;
     read_tag(plugin, group, tag,&dvalue);
