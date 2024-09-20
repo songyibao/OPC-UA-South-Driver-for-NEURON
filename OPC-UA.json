@@ -67,8 +67,8 @@
   ],
   "group_interval": 1000,
   "host": {
-    "name": "PLC IP Address",
-    "name_zh": "PLC IP地址",
+    "name": "OPCUA Server Address",
+    "name_zh": "OPCUA Server 地址",
     "description": "Target PLC IPv4 address",
     "description_zh": "地址",
     "attribute": "required",
@@ -78,19 +78,6 @@
       "length": 100
     }
   },
-  "port": {
-    "name": "PLC Port",
-    "name_zh": "PLC 端口",
-    "description": "Target PLC port",
-    "description_zh": "目标设备端口号",
-    "attribute": "required",
-    "type": "int",
-    "default": 44818,
-    "valid": {
-      "min": 1,
-      "max": 65535
-    }
-  },
   "timeout": {
     "name": "Connection Timeout",
     "name_zh": "连接超时时间",
@@ -98,10 +85,10 @@
     "description_zh": "连接超时时间，单位为毫秒",
     "attribute": "required",
     "type": "int",
-    "default": 2000,
+    "default": 500,
     "valid": {
       "min": 500,
-      "max": 60000
+      "max": 10000
     }
   }
 }
