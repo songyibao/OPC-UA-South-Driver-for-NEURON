@@ -111,8 +111,13 @@ static int driver_start(neu_plugin_t *plugin)
                "\n==============================driver_start"
                "===========================\n");
 
-    ua_client_start(plugin);
+    UA_StatusCode res = ua_client_start(plugin);
+    if(res!=UA_STATUSCODE_GOOD){
+        plugin->started = false;
+        return NEU_ERR_PLUGIN_DISCONNECTED;
+    }
     plugin->started = true;
+
     return 0;
 }
 
@@ -158,6 +163,7 @@ static int driver_config(neu_plugin_t *plugin, const char *config)
     }
 
     plugin->host=host.v.val_str;
+    plugin->timeout = timeout.v.val_int;
     return 0;
 }
 

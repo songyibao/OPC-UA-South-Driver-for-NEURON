@@ -19,7 +19,7 @@ struct neu_plugin {
     bool started;
 
     char        *host;
-    uint16_t    timeout;
+    uint32_t    timeout;
     ua_tag_hash_t *ua_tag_hash_table_head;
 };
 #endif //OPC_UA_OPC_UA_PLUGIN_H
